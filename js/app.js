@@ -21,9 +21,9 @@ function rellenarListaPresupuesto() {
         listaObjetosRecuperada.shift();
         presu.setAttribute("readonly", "true");
         presupuesto = new Presupuesto(presu.value);
+        presupuesto.gastos= listaObjetosRecuperada;
         presupuesto.calcularSaldo();
 
-        presupuesto.gastos= listaObjetosRecuperada;
         ui.insertarPresupuesto(presupuesto);
         
         const { gastos } = presupuesto;
