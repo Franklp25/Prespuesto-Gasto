@@ -1,13 +1,44 @@
 // Variables y Selectores
 const formulario = document.getElementById("agregar-gasto");
 const gastosListado = document.querySelector("#gastos ul");
+const presu = document.querySelector("#presupuesto"); //presupuesto disponible
+
 
 // Eventos
 eventListeners();
 function eventListeners() {
-    document.addEventListener("DOMContentLoaded", preguntarPresupuesto);
+    presu.addEventListener("blur", deshabilitarEdicion);
     formulario.addEventListener("submit", agregarGasto);
     gastosListado.addEventListener("click", eliminarGasto);
+}
+
+function rellenarListaPresupuesto() {
+    if (localStorage.getItem("listaPresupuesto")) {
+        const listaObjetosRecuperada = JSON.parse(
+            localStorage.getItem("listaPresupuesto")
+        );
+        presu.value= listaObjetosRecuperada[0];
+        listaObjetosRecuperada.shift();
+        presu.setAttribute("readonly", "true");
+        presupuesto = new Presupuesto(presu.value);
+        presupuesto.calcularSaldo();
+
+        presupuesto.gastos= listaObjetosRecuperada;
+        ui.insertarPresupuesto(presupuesto);
+        
+        const { gastos } = presupuesto;
+        ui.agregarGastoListado(gastos);
+
+        const {saldo} = presupuesto;
+        ui.actualizarSaldo(saldo);
+    }
+}
+
+function actualizarLocalStorage() {
+    const listaPresupuesto = [...presupuesto.getGastos()];
+    listaPresupuesto.unshift(presu.value);
+    const listaConvertida = JSON.stringify(listaPresupuesto);
+    localStorage.setItem("listaPresupuesto", listaConvertida);
 }
 
 // Classes
@@ -34,6 +65,10 @@ class Presupuesto {
             0
         );
         this.saldo = this.presupuesto - gastado;
+    }
+
+    getGastos() {
+        return this.gastos;
     }
 }
 
@@ -138,18 +173,15 @@ class UI {
         }
     }
 }
-
 const ui = new UI();
 let presupuesto;
 
-function preguntarPresupuesto() {
-    let pres = prompt("¿Cuál es tu presupuesto inicial?");
-    while (pres === "" || pres === null || isNaN(pres) || Number(pres) <= 0) {
-        pres = prompt("¿Cuál es tu presupuesto inicial?");
-    }
-    presupuesto = new Presupuesto(pres);
-    // console.log(presupuesto);
-    // Agregarlo en el HTML
+rellenarListaPresupuesto();
+
+//Esta funcion desahibilita el campu de presupuesto una vez se haya digitado un valor
+function deshabilitarEdicion() {
+    presu.setAttribute("readonly", "true");
+    presupuesto = new Presupuesto(presu.value);
     ui.insertarPresupuesto(presupuesto);
 }
 
@@ -193,6 +225,9 @@ function agregarGasto(e) {
 
         // Reiniciar el form
         formulario.reset();
+
+        //Actualizando elementos en el localStorage
+        actualizarLocalStorage();
     }
 }
 
@@ -206,6 +241,14 @@ function eliminarGasto(e) {
         // Pasar la cantidad de saldo para actualizar el DOM
         const { saldo } = presupuesto;
         ui.actualizarSaldo(saldo);
+
+        //Actualizamos localStorage
+        if(saldo==presupuesto.presupuesto){
+            console.log("se elimino")
+            localStorage.removeItem("listaPresupuesto");
+        }else{
+            actualizarLocalStorage();
+        }
 
         // Eliminar del DOM
         e.target.parentElement.remove();
